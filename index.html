@@ -70,17 +70,17 @@
             color: #FFF;
         }
 
-        .no a {
-            text-decoration: 3px underline dotted #F00;
-        }
-
-        .yes a {
+        a {
             text-decoration: none;
         }
 
-        a:hover {
+        .no a {
+            border-bottom: 3px dotted #F00;
+        }
+
+        a:hover, .no a:hover, .yes a:hover {
             color: #FFF;
-            text-decoration: 3px underline dotted #FFF;
+            border-bottom: 3px dotted #FFF;
         }
 
         #details {

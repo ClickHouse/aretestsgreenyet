@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link id="icon" rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
+    <title>Are tests green yet?</title>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: sans-serif;
+            padding: 5% 15%;
+        }
+
+        body.yes {
+             background: linear-gradient(to bottom, #AFA, #280);
+        }
+
+        body.no {
+             background: linear-gradient(to bottom, #FA8, #F87);
+        }
+
+        h1 {
+            font-size: 72pt;
+            line-height: 1;
+        }
+
+        .yes h1 {
+            color: #4A4;
+        }
+
+        .no h1 {
+            color: #000;
+        }
+
+        .answer {
+            font-size: 144pt;
+            font-weight: bold;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .yes .answer {
+            color: #FF0;
+        }
+
+        .no .answer {
+            color: #F00;
+        }
+
+        .yes .answer-no, .no .answer-yes {
+            display: none;
+        }
+
+        .fail {
+            font-weight: bold;
+        }
+
+        .no .fail {
+            color: #F00;
+        }
+
+        .yes .fail {
+            color: #FFF;
+        }
+
+        .no a {
+            text-decoration: 3px underline dotted #F00;
+        }
+
+        .yes a {
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #FFF;
+            text-decoration: 3px underline dotted #FFF;
+        }
+
+        #details {
+            font-size: 32pt;
+            margin-top: 3em;
+        }
+
+        #shit {
+            font-size: 16pt;
+            margin-top: 5em;
+            color: #666;
+        }
+    </style>
+</head>
+<body class="no">
+<h1>Are tests green yet?</h1>
+<p class="answer answer-yes">&mdash; Yes!</p>
+<p class="answer answer-no">&mdash; No.</p>
+<p id="details"></p>
+<p id="shit"></p>
+
+<script type="text/javascript">
+
+const clickhouse_url = "https://play.clickhouse.com/?user=play";
+
+function failed_tests_url(cond) {
+    return "https://play.clickhouse.com/play?user=play#" + btoa(
+`SELECT check_name, test_name, 'https://github.com/ClickHouse/ClickHouse/commit/' || commit_sha AS url
+FROM checks
+WHERE ${cond}
+    AND check_start_time >= now() - INTERVAL 24 HOUR
+    AND pull_request_number = 0
+    AND test_status != 'SKIPPED'
+    AND test_status LIKE 'F%'
+ORDER BY check_name, test_name, check_start_time`);
+}
+
+const failed_integration_tests_url = ""
+
+async function load() {
+
+    const response = await fetch(
+        clickhouse_url,
+        { method: "POST", body: `
+            WITH test_status LIKE 'F%' AS fail,
+                check_name LIKE 'State%' AS functional,
+                check_name LIKE 'Integration%' AS integration,
+                check_name LIKE 'AST fuzzer%' AS fuzzer
+            SELECT
+                count() AS total,
+                sum(fail) AS failed,
+                sum(functional) AS functional_total,
+                sum(functional AND fail) AS functional_failed,
+                sum(integration) AS integration_total,
+                sum(integration AND fail) AS integration_failed,
+                sum(fuzzer AND fail) AS fuzzer_failed,
+                groupUniqArrayIf(test_name, functional AND fail) AS failed_functional_tests,
+                groupUniqArrayIf(extract(test_name, '^(?:test_)?([^/]+)'), integration AND fail) AS failed_integration_tests
+            FROM checks
+            WHERE check_start_time >= now() - INTERVAL 24 HOUR
+            AND pull_request_number = 0
+            AND test_status != 'SKIPPED' FORMAT JSON` });
+
+    function onError() {
+        document.getElementById('details').textContent = `Load failed\nHTTP status ${response.status}\nMessage: ${response.body}`;
+    }
+
+    if (!response.ok) onError();
+    const json = await response.json();
+    if (json.rows != 1) onError();
+
+    const result = json.data[0];
+    const status = result.failed == 0 && result.total > 1000;
+
+    document.body.className = status ? 'yes' : 'no';
+
+    let message = `<b>${result.total}</b> tests were run in past 24 hours<br/>
+        and <a href="${failed_tests_url('1')}" class="fail">${result.failed}</a> of them have failed.`;
+
+    if (result.functional_failed) {
+        message += `<br/><br/><b>${result.functional_total}</b> functional tests
+            with <a href="${failed_tests_url("check_name LIKE 'State%'")}" class="fail">${result.functional_failed}</a> of them failed.`
+    }
+
+    if (result.integration_failed) {
+        message += `<br/><br/><b>${result.integration_total}</b> integration tests
+            with <a href="${failed_tests_url("check_name LIKE 'Integration%'")}" class="fail">${result.integration_failed}</a> of them failed.`
+    }
+
+    if (result.fuzzer_failed) {
+        message += `<br/><br/>Fuzzer has found <a href="${failed_tests_url("check_name LIKE 'AST fuzzer%'")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.`
+    }
+
+    document.getElementById('details').innerHTML = message;
+
+    let list_tests = '';
+    if (result.functional_failed) {
+        list_tests += `Shit: ${result.failed_functional_tests.join(', ')}.`
+    }
+    if (result.integration_failed) {
+        list_tests += `<br/><br/>Trash: ${result.failed_integration_tests.join(', ')}.`
+    }
+
+    document.getElementById('shit').innerHTML = list_tests;
+
+    setFavicon(status);
+}
+
+function setFavicon(status) {
+    const canvas = document.createElement('canvas');
+    canvas.height = 1;
+    canvas.width = 1;
+    const ctx = canvas.getContext('2d');
+    let image = ctx.getImageData(0, 0, 1, 1);
+    let pixels = image.data;
+
+    if (status) {
+        pixels[0] = 0;
+        pixels[1] = 255;
+        pixels[2] = 0;
+        pixels[3] = 255;
+    } else {
+        pixels[0] = 255;
+        pixels[1] = 0;
+        pixels[2] = 0;
+        pixels[3] = 255;
+    }
+
+    ctx.putImageData(image, 0, 0);
+    document.getElementById("icon").href = canvas.toDataURL();
+}
+
+load();
+
+</script>
+</body>
+</html>

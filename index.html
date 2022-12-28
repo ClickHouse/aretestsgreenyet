@@ -115,6 +115,7 @@ WHERE ${cond}
     AND pull_request_number = 0
     AND test_status != 'SKIPPED'
     AND test_status LIKE 'F%'
+    AND check_status != 'success'
 ORDER BY check_name, test_name, check_start_time`);
 }
 
@@ -125,7 +126,7 @@ async function load() {
     const response = await fetch(
         clickhouse_url,
         { method: "POST", body: `
-            WITH test_status LIKE 'F%' AS fail,
+            WITH test_status LIKE 'F%' AND check_status != 'success' AS fail,
                 check_name LIKE 'State%' AS functional,
                 check_name LIKE 'Integration%' AS integration,
                 check_name LIKE 'AST fuzzer%' AS fuzzer

@@ -105,9 +105,10 @@
 <script type="text/javascript">
 
 const clickhouse_url = "https://play.clickhouse.com/?user=play";
+const clickhouse_playground_url = "https://play.clickhouse.com/play?user=play";
 
 function failed_tests_url(cond) {
-    return "https://play.clickhouse.com/play?user=play#" + btoa(
+    return clickhouse_playground_url + "#" + btoa(
 `SELECT check_name, test_name, 'https://github.com/ClickHouse/ClickHouse/commit/' || commit_sha AS url
 FROM checks
 WHERE ${cond}
@@ -119,7 +120,15 @@ WHERE ${cond}
 ORDER BY check_name, test_name, check_start_time`);
 }
 
-const failed_integration_tests_url = ""
+const failed_runs = clickhouse_playground_url + "#" + btoa(
+`SELECT check_name, 'https://github.com/ClickHouse/ClickHouse/commit/' || commit_sha AS url
+FROM checks
+WHERE check_start_time >= now() - INTERVAL 24 HOUR
+    AND pull_request_number = 0
+    AND test_status != 'SKIPPED'
+GROUP BY ALL
+HAVING sum(test_status LIKE 'F%' AND check_status != 'success') >= 20
+ORDER BY check_name`);
 
 async function load() {
 
@@ -129,7 +138,18 @@ async function load() {
             WITH test_status LIKE 'F%' AND check_status != 'success' AS fail,
                 check_name LIKE 'State%' AS functional,
                 check_name LIKE 'Integration%' AS integration,
-                check_name LIKE 'AST fuzzer%' AS fuzzer
+                check_name LIKE 'AST fuzzer%' AS fuzzer,
+
+                 -- runs where many tests failed in a group
+                bad_runs AS (
+                    SELECT check_name, commit_sha
+                    FROM checks
+                    WHERE check_start_time >= now() - INTERVAL 24 HOUR
+                        AND pull_request_number = 0
+                        AND test_status != 'SKIPPED'
+                    GROUP BY ALL
+                    HAVING sum(fail) >= 20)
+
             SELECT
                 count() AS total,
                 sum(fail) AS failed,
@@ -138,7 +158,8 @@ async function load() {
                 sum(integration) AS integration_total,
                 sum(integration AND fail) AS integration_failed,
                 sum(fuzzer AND fail) AS fuzzer_failed,
-                groupUniqArrayIf(test_name, functional AND fail) AS failed_functional_tests,
+                (SELECT count() FROM bad_runs) AS num_bad_runs,
+                groupUniqArrayIf(test_name, functional AND fail AND (check_name, commit_sha) NOT IN bad_runs) AS failed_functional_tests,
                 groupUniqArrayIf(extract(test_name, '^(?:test_)?([^/]+)'), integration AND fail) AS failed_integration_tests
             FROM checks
             WHERE check_start_time >= now() - INTERVAL 24 HOUR
@@ -163,16 +184,20 @@ async function load() {
 
     if (result.functional_failed) {
         message += `<br/><br/><b>${result.functional_total}</b> functional tests
-            with <a href="${failed_tests_url("check_name LIKE 'State%'")}" class="fail">${result.functional_failed}</a> of them failed.`
+            with <a href="${failed_tests_url("check_name LIKE 'State%'")}" class="fail">${result.functional_failed}</a> of them failed.`;
     }
 
     if (result.integration_failed) {
         message += `<br/><br/><b>${result.integration_total}</b> integration tests
-            with <a href="${failed_tests_url("check_name LIKE 'Integration%'")}" class="fail">${result.integration_failed}</a> of them failed.`
+            with <a href="${failed_tests_url("check_name LIKE 'Integration%'")}" class="fail">${result.integration_failed}</a> of them failed.`;
     }
 
     if (result.fuzzer_failed) {
-        message += `<br/><br/>Fuzzer has found <a href="${failed_tests_url("check_name LIKE 'AST fuzzer%'")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.`
+        message += `<br/><br/>Fuzzer has found <a href="${failed_tests_url("check_name LIKE 'AST fuzzer%'")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.`;
+    }
+
+    if (result.num_bad_runs) {
+        message += `<br/><br/>There are <a href="${failed_runs}" class="fail">${result.num_bad_runs}</a> runs with group failures.`;
     }
 
     document.getElementById('details').innerHTML = message;

@@ -93,6 +93,12 @@
             margin-top: 5em;
             color: #666;
         }
+
+        #shit a {
+            color: #666;
+            text-decoration: none;
+            border-bottom: 1px dotted #666;
+        }
     </style>
 </head>
 <body class="no">
@@ -129,6 +135,19 @@ WHERE check_start_time >= now() - INTERVAL 24 HOUR
 GROUP BY ALL
 HAVING sum(test_status LIKE 'F%' AND check_status != 'success') >= 20
 ORDER BY check_name`);
+
+function test_failures_url(name) {
+    return clickhouse_playground_url + "#" + btoa(
+`SELECT check_start_time, check_name, test_name, 'https://github.com/ClickHouse/ClickHouse/commit/' || commit_sha AS url
+FROM checks
+WHERE check_start_time >= now() - INTERVAL 24 HOUR
+    AND pull_request_number = 0
+    AND test_status != 'SKIPPED'
+    AND test_status LIKE 'F%'
+    AND check_status != 'success'
+    AND position(test_name, '${name}') > 0
+ORDER BY check_start_time`);
+}
 
 async function load() {
 
@@ -204,10 +223,10 @@ async function load() {
 
     let list_tests = '';
     if (result.functional_failed) {
-        list_tests += `Shit: ${result.failed_functional_tests.join(', ')}.`
+        list_tests += `Shit: ${result.failed_functional_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.`
     }
     if (result.integration_failed) {
-        list_tests += `<br/><br/>Trash: ${result.failed_integration_tests.join(', ')}.`
+        list_tests += `<br/><br/>Trash: ${result.failed_integration_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.`
     }
 
     document.getElementById('shit').innerHTML = list_tests;

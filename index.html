@@ -201,31 +201,37 @@ async function load() {
     let message = `<b>${result.total}</b> tests were run in past 24 hours<br/>
         and <a href="${failed_tests_url('1')}" class="fail">${result.failed}</a> of them have failed.`;
 
-    if (result.functional_failed) {
+    if (+result.functional_failed) {
         message += `<br/><br/><b>${result.functional_total}</b> functional tests
             with <a href="${failed_tests_url("check_name LIKE 'State%'")}" class="fail">${result.functional_failed}</a> of them failed.`;
+    } else {
+        message += `<br/><br/><b>${result.functional_total}</b> functional tests and <b>none</b> of them failed.`;
     }
 
-    if (result.integration_failed) {
+    if (+result.integration_failed) {
         message += `<br/><br/><b>${result.integration_total}</b> integration tests
             with <a href="${failed_tests_url("check_name LIKE 'Integration%'")}" class="fail">${result.integration_failed}</a> of them failed.`;
+    } else {
+        message += `<br/><br/><b>${result.integration_total}</b> integration tests and <b>none</b> of them failed.`;
     }
 
-    if (result.fuzzer_failed) {
+    if (+result.fuzzer_failed) {
         message += `<br/><br/>Fuzzer has found <a href="${failed_tests_url("check_name LIKE 'AST fuzzer%'")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.`;
+    } else {
+        message += `<br/><br/>Fuzzer has found <b>no new bugs</b>.`;
     }
 
-    if (result.num_bad_runs) {
+    if (+result.num_bad_runs) {
         message += `<br/><br/>There are <a href="${failed_runs}" class="fail">${result.num_bad_runs}</a> runs with group failures.`;
     }
 
     document.getElementById('details').innerHTML = message;
 
     let list_tests = '';
-    if (result.functional_failed) {
+    if (+result.functional_failed) {
         list_tests += `Shit: ${result.failed_functional_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.`
     }
-    if (result.integration_failed) {
+    if (+result.integration_failed) {
         list_tests += `<br/><br/>Trash: ${result.failed_integration_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.`
     }
 

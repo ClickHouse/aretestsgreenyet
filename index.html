@@ -115,7 +115,7 @@ const clickhouse_playground_url = "https://play.clickhouse.com/play?user=play";
 
 function failed_tests_url(cond) {
     return clickhouse_playground_url + "#" + btoa(
-`SELECT check_name, test_name, 'https://github.com/ClickHouse/ClickHouse/commit/' || commit_sha AS url
+`SELECT check_name, test_name, report_url
 FROM checks
 WHERE ${cond}
     AND check_start_time >= now() - INTERVAL 24 HOUR
@@ -127,7 +127,7 @@ ORDER BY check_name, test_name, check_start_time`);
 }
 
 const failed_runs = clickhouse_playground_url + "#" + btoa(
-`SELECT check_name, 'https://github.com/ClickHouse/ClickHouse/commit/' || commit_sha AS url
+`SELECT check_name, report_url
 FROM checks
 WHERE check_start_time >= now() - INTERVAL 24 HOUR
     AND pull_request_number = 0
@@ -138,7 +138,7 @@ ORDER BY check_name`);
 
 function test_failures_url(name) {
     return clickhouse_playground_url + "#" + btoa(
-`SELECT check_start_time, check_name, test_name, 'https://github.com/ClickHouse/ClickHouse/commit/' || commit_sha AS url
+`SELECT check_start_time, check_name, test_name, report_url
 FROM checks
 WHERE check_start_time >= now() - INTERVAL 24 HOUR
     AND pull_request_number = 0

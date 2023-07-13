@@ -125,7 +125,6 @@ WHERE ${cond}
     AND pull_request_number = 0
     AND test_status != 'SKIPPED'
     AND test_status LIKE 'F%'
-    AND check_status != 'success'
 ORDER BY check_name, test_name, check_start_time`);
 }
 
@@ -136,7 +135,7 @@ WHERE check_start_time >= now() - INTERVAL 24 HOUR
     AND pull_request_number = 0
     AND test_status != 'SKIPPED'
 GROUP BY ALL
-HAVING sum(test_status LIKE 'F%' AND check_status != 'success') >= 20
+HAVING sum(test_status LIKE 'F%') >= 20
 ORDER BY check_name`);
 
 function test_failures_url(name) {
@@ -147,7 +146,6 @@ WHERE check_start_time >= now() - INTERVAL 24 HOUR
     AND pull_request_number = 0
     AND test_status != 'SKIPPED'
     AND test_status LIKE 'F%'
-    AND check_status != 'success'
     AND position(test_name, '${name}') > 0
 ORDER BY check_start_time`);
 }
@@ -157,7 +155,7 @@ async function load() {
     const response = await fetch(
         clickhouse_url,
         { method: "POST", body: `
-            WITH test_status LIKE 'F%' AND check_status != 'success' AS fail,
+            WITH test_status LIKE 'F%' AS fail,
                 check_name LIKE 'State%' AS functional,
                 check_name LIKE 'Integration%' AS integration,
                 check_name LIKE 'AST fuzzer%' AS fuzzer,

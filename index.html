@@ -197,7 +197,7 @@ async function load() {
     if (json.rows != 1) onError();
 
     const result = json.data[0];
-    const status = result.failed == 0 && result.total > 1000000;
+    const status = result.failed == 0 && result.total > 500000;
 
     document.body.className = status ? 'yes' : 'no';
 

@@ -26,7 +26,8 @@
         }
 
         body.no {
-             background: linear-gradient(to bottom, #FA8, #F87);
+             background: black;
+             color: white;
         }
 
         h1 {
@@ -39,7 +40,7 @@
         }
 
         .no h1 {
-            color: #000;
+            color: #FFF;
         }
 
         .answer {
@@ -94,17 +95,42 @@
         #shit {
             font-size: 16pt;
             margin-top: 5em;
-            color: #666;
+            color: #FFF;
         }
 
         #shit a {
-            color: #666;
+            color: #FFF;
             text-decoration: none;
-            border-bottom: 1px dotted #666;
+            border-bottom: 1px dotted #FFF;
+        }
+
+        .yes #gibberish {
+            display: none;
+        }
+
+        .no #gibberish {
+            margin: 0;
+            z-index: -1;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            font-family: monospace;
+            line-height: 1;
+            font-size: 12pt;
+            word-break: break-all;
+            overflow: hidden;
+            color: #333;
+        }
+
+        .no span {
+            background: black;
         }
     </style>
 </head>
 <body class="no">
+<div id="gibberish"></div>
 <h1>Are tests green yet?</h1>
 <p class="answer answer-yes">&mdash; Yes!</p>
 <p class="answer answer-no">&mdash; No.</p>
@@ -197,46 +223,63 @@ async function load() {
 
     document.body.className = status ? 'yes' : 'no';
 
-    let message = `<b>${result.total}</b> tests were run in past 24 hours<br/>
-        and <a href="${failed_tests_url('1')}" class="fail">${result.failed}</a> of them have failed.`;
+    let message = `<span><b>${result.total}</b> tests were run in past 24 hours<br/>
+        and <a href="${failed_tests_url('1')}" class="fail">${result.failed}</a> of them have failed.</span>`;
 
     if (+result.functional_failed) {
-        message += `<br/><br/><b>${result.functional_total}</b> functional tests
-            with <a href="${failed_tests_url("check_name LIKE 'State%'")}" class="fail">${result.functional_failed}</a> of them failed.`;
+        message += `<br/><br/><span><b>${result.functional_total}</b> functional tests
+            with <a href="${failed_tests_url("check_name LIKE 'State%'")}" class="fail">${result.functional_failed}</a> of them failed.</span>`;
     } else {
-        message += `<br/><br/><b>${result.functional_total}</b> functional tests and <b>none</b> of them failed.`;
+        message += `<br/><br/><span><b>${result.functional_total}</b> functional tests and <b>none</b> of them failed.</span>`;
     }
 
     if (+result.integration_failed) {
-        message += `<br/><br/><b>${result.integration_total}</b> integration tests
-            with <a href="${failed_tests_url("check_name LIKE 'Integration%'")}" class="fail">${result.integration_failed}</a> of them failed.`;
+        message += `<br/><br/><span><b>${result.integration_total}</b> integration tests
+            with <a href="${failed_tests_url("check_name LIKE 'Integration%'")}" class="fail">${result.integration_failed}</a> of them failed.</span>`;
     } else {
-        message += `<br/><br/><b>${result.integration_total}</b> integration tests and <b>none</b> of them failed.`;
+        message += `<br/><br/><span><b>${result.integration_total}</b> integration tests and <b>none</b> of them failed.</span>`;
     }
 
     if (+result.fuzzer_failed) {
-        message += `<br/><br/>Fuzzer has found <a href="${failed_tests_url("check_name LIKE 'AST fuzzer%'")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.`;
+        message += `<br/><br/><span>Fuzzer has found <a href="${failed_tests_url("check_name LIKE 'AST fuzzer%'")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.</span>`;
     } else {
-        message += `<br/><br/>Fuzzer has found <b>no new bugs</b>.`;
+        message += `<br/><br/><span>Fuzzer has found <b>no new bugs</b></span>.`;
     }
 
     if (+result.num_bad_runs) {
-        message += `<br/><br/>There are <a href="${failed_runs}" class="fail">${result.num_bad_runs}</a> runs with group failures.`;
+        message += `<br/><br/><span>There are <a href="${failed_runs}" class="fail">${result.num_bad_runs}</a> runs with group failures.</span>`;
     }
 
     document.getElementById('details').innerHTML = message;
 
     let list_tests = '';
     if (+result.functional_failed) {
-        list_tests += `Shit: ${result.failed_functional_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.`
+        list_tests += `<span>Shit: ${result.failed_functional_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.</span>`
     }
     if (+result.integration_failed) {
-        list_tests += `<br/><br/>Trash: ${result.failed_integration_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.`
+        list_tests += `<br/><br/><span>Trash: ${result.failed_integration_tests.map(x => `<a href="${test_failures_url(x)}">${x}</a>`).join(', ')}.</span>`
     }
 
     document.getElementById('shit').innerHTML = list_tests;
 
     setFavicon(status);
+
+    // Generate gibberish, make it scary but with a touch of humour.
+    if (!status) {
+        // Classic IBM-PC CP437, with spaces replaced with nbsp, it should resemble some glitches from MS-DOS.
+        const chars = ` ☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~▒ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσμτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ `;
+
+        let gibberish = document.getElementById('gibberish');
+        [...Array(100)].forEach(_ => {
+            let span = document.createElement('span');
+            if (Math.random() < 0.05) {
+                span.style.color = '#033';
+            }
+            const length = 1 + Math.floor(Math.random() * 500);
+            span.innerText = Math.random() < 0.95 ? [...Array(length)].map(_ => chars[Math.floor(Math.random() * chars.length)]).join('') : ["-----BEGGING RSA PRIVATE KEY-----", "AWS_ACCESS_KEY_ID=",  "AWS_SECRET_ACCESS_KEY=", "AWS_SESSION_TOKEN="][Math.floor(Math.random() * 4)];
+            gibberish.appendChild(span);
+        });
+    }
 }
 
 function setFavicon(status) {

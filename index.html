@@ -13,9 +13,14 @@
             box-sizing: border-box;
         }
 
-        body {
+        .main {
             font-family: sans-serif;
             padding: 5% 15%;
+        }
+
+        .main h1, .main p {
+            position: relative;
+            z-index: 1;
         }
 
         body.yes {
@@ -110,7 +115,6 @@
 
         .no #gibberish {
             margin: 0;
-            z-index: -1;
             position: absolute;
             left: 0;
             top: 0;
@@ -127,15 +131,70 @@
         .no span {
             background: black;
         }
+
+        #gibberish a {
+            border-bottom: none;
+            position: relative;
+            z-index: 2;
+        }
+
+        .c1 { color: #F00; background: #0F0; }
+        .c2 { color: #F00; background: #00F; }
+        .c3 { color: #F00; background: #880; }
+        .c4 { color: #F00; background: #F0F; }
+        .c5 { color: #F00; background: #0FF; }
+        .c6 { color: #F00; background: #FFF; }
+        .c7 { color: #0F0; background: #F00; }
+        .c8 { color: #0F0; background: #00F; }
+        .c9 { color: #0F0; background: #880; }
+        .c10 { color: #0F0; background: #F0F; }
+        .c11 { color: #0F0; background: #088; }
+        .c12 { color: #0F0; background: #888; }
+        .c13 { color: #00F; background: #F00; }
+        .c14 { color: #00F; background: #0F0; }
+        .c15 { color: #00F; background: #FF0; }
+        .c16 { color: #00F; background: #F0F; }
+        .c17 { color: #00F; background: #0FF; }
+        .c18 { color: #00F; background: #FFF; }
+        .c19 { color: #FF0; background: #F00; }
+        .c20 { color: #FF0; background: #080; }
+        .c21 { color: #FF0; background: #00F; }
+        .c22 { color: #FF0; background: #F0F; }
+        .c23 { color: #FF0; background: #088; }
+        .c24 { color: #FF0; background: #888; }
+        .c25 { color: #F0F; background: #800; }
+        .c26 { color: #F0F; background: #0F0; }
+        .c27 { color: #F0F; background: #00F; }
+        .c28 { color: #F0F; background: #FF0; }
+        .c29 { color: #F0F; background: #0FF; }
+        .c30 { color: #F0F; background: #FFF; }
+        .c31 { color: #0FF; background: #F00; }
+        .c32 { color: #0FF; background: #080; }
+        .c33 { color: #0FF; background: #00F; }
+        .c34 { color: #0FF; background: #880; }
+        .c35 { color: #0FF; background: #F0F; }
+        .c36 { color: #0FF; background: #888; }
+        .c37 { color: #FFF; background: #F00; }
+        .c38 { color: #FFF; background: #080; }
+        .c39 { color: #FFF; background: #00F; }
+        .c40 { color: #FFF; background: #880; }
+        .c41 { color: #FFF; background: #F0F; }
+        .c42 { color: #FFF; background: #088; }
+
+        #gibberish a:hover {
+            transform: rotate(0.5turn);
+        }
     </style>
 </head>
 <body class="no">
-<div id="gibberish"></div>
-<h1>Are tests green yet?</h1>
-<p class="answer answer-yes">&mdash; Yes!</p>
-<p class="answer answer-no">&mdash; No.</p>
-<p id="details"></p>
-<p id="shit"></p>
+<div class="main">
+    <h1>Are tests green yet?</h1>
+    <p class="answer answer-yes">&mdash; Yes!</p>
+    <p class="answer answer-no">&mdash; No.</p>
+    <p id="details"></p>
+    <p id="shit"></p>
+    <div id="gibberish"></div>
+</div>
 
 <script type="text/javascript">
 
@@ -265,8 +324,25 @@ async function load() {
 
     setFavicon(status);
 
-    // Generate gibberish, make it scary but with a touch of humour.
     if (!status) {
+        const reports_query = `
+            SELECT report_url
+            FROM checks
+            WHERE 1
+                AND check_start_time >= now() - INTERVAL 24 HOUR
+                AND pull_request_number = 0
+                AND test_status != 'SKIPPED'
+                AND test_status LIKE 'F%'
+                AND check_status != 'success'
+                AND check_name NOT LIKE 'SQLancer%'
+            FORMAT JSON`
+
+        const reports_response = await fetch(clickhouse_url, { method: "POST", body: reports_query });
+
+        if (!reports_response.ok) onError();
+        const reports_json = await reports_response.json();
+        const links = reports_json.data;
+
         // Classic IBM-PC CP437, with spaces replaced with nbsp, it should resemble some glitches from MS-DOS.
         const chars = ` ☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~▒ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσμτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ `;
 
@@ -275,14 +351,20 @@ async function load() {
             gibberish.removeChild(gibberish.lastChild);
         }
 
-        [...Array(100)].forEach(_ => {
+        const num_fragments = links.length;
+        const max_fragment_length = Math.ceil(20000 / links.length);
+
+        [...Array(num_fragments)].forEach((_, idx) => {
             let span = document.createElement('span');
-            if (Math.random() < 0.05) {
-                span.style.color = '#033';
-            }
-            const length = 1 + Math.floor(Math.random() * 500);
+            const length = 1 + Math.floor(Math.random() * max_fragment_length);
             span.innerText = Math.random() < 0.95 ? [...Array(length)].map(_ => chars[Math.floor(Math.random() * chars.length)]).join('') : ["-----BEGGING RSA PRIVATE KEY-----", "AWS_ACCESS_KEY_ID=",  "AWS_SECRET_ACCESS_KEY=", "AWS_SESSION_TOKEN="][Math.floor(Math.random() * 4)];
             gibberish.appendChild(span);
+
+            let link = document.createElement('a');
+            link.href = links[idx].report_url;
+            link.innerText = chars[Math.floor(Math.random() * chars.length)];
+            link.className = 'c' + (1 + Math.floor(Math.random() * 42))
+            gibberish.appendChild(link);
         });
     }
 }

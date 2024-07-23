@@ -352,7 +352,7 @@ async function load() {
         }
 
         const num_fragments = links.length;
-        const max_fragment_length = Math.ceil(20000 / links.length);
+        const max_fragment_length = Math.ceil(50000 / links.length);
 
         [...Array(num_fragments)].forEach((_, idx) => {
             let span = document.createElement('span');

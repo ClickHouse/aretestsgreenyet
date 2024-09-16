@@ -228,7 +228,6 @@ WHERE ${cond}
     AND test_status != 'SKIPPED'
     AND (test_status LIKE 'F%' OR test_status LIKE 'E%') 
     AND check_status != 'success'
-    AND check_name NOT LIKE 'SQLancer%'
 ORDER BY check_name, test_name, check_start_time`);
 }
 
@@ -273,7 +272,7 @@ async function load() {
 
             SELECT
                 count() AS total,
-                sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success' AND check_name NOT LIKE 'SQLancer%' AS fail) AS failed,
+                sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success' AS fail) AS failed,
                 sum(check_name LIKE 'State%' AS functional) AS functional_total,
                 sum(functional AND fail) AS functional_failed,
                 sum(check_name LIKE 'Integration%' AS integration) AS integration_total,
@@ -365,7 +364,6 @@ async function load() {
                 AND test_status != 'SKIPPED'
                 AND (test_status LIKE 'F%' OR test_status LIKE 'E%')
                 AND check_status != 'success'
-                AND check_name NOT LIKE 'SQLancer%'
             FORMAT JSON`
 
         const reports_response = await fetch(clickhouse_url, { method: "POST", body: reports_query });

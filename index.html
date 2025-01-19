@@ -224,7 +224,7 @@ function failed_tests_url(cond) {
 FROM checks
 WHERE ${cond}
     AND check_start_time >= now() - INTERVAL ${hours} HOUR
-    AND head_ref = 'master'
+    AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
     AND test_status != 'SKIPPED'
     AND (test_status LIKE 'F%' OR test_status LIKE 'E%') 
     AND check_status != 'success'
@@ -235,7 +235,7 @@ const failed_runs = clickhouse_playground_url + "#" + btoa(
 `SELECT check_name, report_url
 FROM checks
 WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
-    AND head_ref = 'master'
+    AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
     AND test_status != 'SKIPPED'
 GROUP BY ALL
 HAVING sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success') >= 20
@@ -246,7 +246,7 @@ function test_failures_url(name) {
 `SELECT check_start_time, check_name, test_name, report_url
 FROM checks
 WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
-    AND head_ref = 'master'
+    AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
     AND test_status != 'SKIPPED'
     AND (test_status LIKE 'F%' OR test_status LIKE 'E%') 
     AND check_status != 'success'
@@ -265,7 +265,7 @@ async function load() {
                     SELECT check_name, commit_sha
                     FROM checks
                     WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
-                        AND head_ref = 'master'
+                        AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
                         AND test_status != 'SKIPPED'
                     GROUP BY ALL
                     HAVING sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success') >= 20)
@@ -283,8 +283,8 @@ async function load() {
                 groupUniqArrayIf(extract(test_name, '^(?:test_)?([^/]+)'), integration AND fail) AS failed_integration_tests
             FROM checks
             WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
-            AND head_ref = 'master'
-            AND test_status != 'SKIPPED' FORMAT JSON` });
+                AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
+                AND test_status != 'SKIPPED' FORMAT JSON` });
 
     function onError() {
         document.getElementById('details').textContent = `Load failed\nHTTP status ${response.status}\nMessage: ${response.body}`;
@@ -360,7 +360,7 @@ async function load() {
             FROM checks
             WHERE 1
                 AND check_start_time >= now() - INTERVAL ${hours} HOUR
-                AND head_ref = 'master'
+                AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
                 AND test_status != 'SKIPPED'
                 AND (test_status LIKE 'F%' OR test_status LIKE 'E%')
                 AND check_status != 'success'

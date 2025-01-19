@@ -265,7 +265,7 @@ async function load() {
                     SELECT check_name, commit_sha
                     FROM checks
                     WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
-                        AND ( head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/') )
+                        AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
                         AND test_status != 'SKIPPED'
                     GROUP BY ALL
                     HAVING sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success') >= 20)
@@ -360,7 +360,7 @@ async function load() {
             FROM checks
             WHERE 1
                 AND check_start_time >= now() - INTERVAL ${hours} HOUR
-                AND ( head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/') )
+                AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
                 AND test_status != 'SKIPPED'
                 AND (test_status LIKE 'F%' OR test_status LIKE 'E%')
                 AND check_status != 'success'

@@ -277,7 +277,7 @@ async function load() {
                 sum(functional AND fail) AS functional_failed,
                 sum(check_name LIKE 'Integration%' AS integration) AS integration_total,
                 sum(integration AND fail) AS integration_failed,
-                sum((check_name LIKE 'AST fuzzer%' AS fuzzer) AND fail) AS fuzzer_failed,
+                sum(((check_name LIKE 'AST fuzzer%' OR check_name LIKE 'BuzzHouse%') AS fuzzer) AND fail) AS fuzzer_failed,
                 (SELECT count() FROM bad_runs) AS num_bad_runs,
                 groupUniqArrayIf(test_name, functional AND fail AND (check_name, commit_sha) NOT IN bad_runs) AS failed_functional_tests,
                 groupUniqArrayIf(extract(test_name, '^(?:test_)?([^/]+)'), integration AND fail) AS failed_integration_tests
@@ -317,7 +317,7 @@ async function load() {
     }
 
     if (+result.fuzzer_failed) {
-        message += `<br/><br/><span>Fuzzer has found <a href="${failed_tests_url("check_name LIKE 'AST fuzzer%'")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.</span>`;
+        message += `<br/><br/><span>Fuzzer has found <a href="${failed_tests_url("(check_name LIKE 'AST fuzzer%' OR check_name LIKE 'BuzzHouse%')")}" class="fail">${result.fuzzer_failed}</a> potential new bugs.</span>`;
     } else {
         message += `<br/><br/><span>Fuzzer has found <b>no new bugs</b></span>.`;
     }

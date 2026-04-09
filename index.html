@@ -230,6 +230,7 @@ WHERE ${cond}
     AND check_status != 'success'
     AND check_name NOT LIKE 'libFuzzer%'
     AND check_name != 'ClickHouse Keeper Jepsen'
+    AND check_name NOT ILIKE '%experimental%'
 ORDER BY check_name, test_name, check_start_time`);
 }
 
@@ -241,6 +242,7 @@ WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
     AND test_status != 'SKIPPED'
     AND check_name NOT LIKE 'libFuzzer%'
     AND check_name != 'ClickHouse Keeper Jepsen'
+    AND check_name NOT ILIKE '%experimental%'
 GROUP BY ALL
 HAVING sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success') >= 20
 ORDER BY check_name`);
@@ -256,6 +258,7 @@ WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
     AND check_status != 'success'
     AND check_name NOT LIKE 'libFuzzer%'
     AND check_name != 'ClickHouse Keeper Jepsen'
+    AND check_name NOT ILIKE '%experimental%'
     AND position(test_name, '${name}') > 0
 ORDER BY check_start_time`);
 }
@@ -275,6 +278,7 @@ async function load() {
                         AND test_status != 'SKIPPED'
                         AND check_name NOT LIKE 'libFuzzer%'
                         AND check_name != 'ClickHouse Keeper Jepsen'
+                        AND check_name NOT ILIKE '%experimental%'
                     GROUP BY ALL
                     HAVING sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success') >= 20)
 
@@ -294,7 +298,8 @@ async function load() {
                 AND (head_ref = 'master' AND startsWith(head_repo, 'ClickHouse/'))
                 AND test_status != 'SKIPPED'
                 AND check_name NOT LIKE 'libFuzzer%'
-                AND check_name != 'ClickHouse Keeper Jepsen' FORMAT JSON` });
+                AND check_name != 'ClickHouse Keeper Jepsen'
+                AND check_name NOT ILIKE '%experimental%' FORMAT JSON` });
 
     function onError() {
         document.getElementById('details').textContent = `Load failed\nHTTP status ${response.status}\nMessage: ${response.body}`;
@@ -376,6 +381,7 @@ async function load() {
                 AND check_status != 'success'
                 AND check_name NOT LIKE 'libFuzzer%'
                 AND check_name != 'ClickHouse Keeper Jepsen'
+                AND check_name NOT ILIKE '%experimental%'
             FORMAT JSON`
 
         const reports_response = await fetch(clickhouse_url, { method: "POST", body: reports_query });

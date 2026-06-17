@@ -247,6 +247,10 @@ GROUP BY ALL
 HAVING sum((test_status LIKE 'F%' OR test_status LIKE 'E%') AND check_status != 'success') >= 20
 ORDER BY check_name`);
 
+function escape_sql_string(s) {
+    return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 function test_failures_url(name) {
     return clickhouse_playground_url + "#" + btoa(
 `SELECT check_start_time, check_name, test_name, report_url
@@ -259,7 +263,7 @@ WHERE check_start_time >= now() - INTERVAL ${hours} HOUR
     AND check_name NOT LIKE 'libFuzzer%'
     AND check_name != 'ClickHouse Keeper Jepsen'
     AND check_name NOT ILIKE '%experimental%'
-    AND position(test_name, '${name}') > 0
+    AND position(test_name, '${escape_sql_string(name)}') > 0
 ORDER BY check_start_time`);
 }
 
